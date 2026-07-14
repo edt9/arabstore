@@ -1,7 +1,4 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
+// Shared types used across frontend and backend
 
 export interface Game {
   id: string;
@@ -11,7 +8,7 @@ export interface Game {
   description: string;
   size: string;
   category: 'games' | 'apps';
-  sub_category?: string; // e.g. "أكشن", "استراتيجية", "أدوات", "إنتاجية"
+  sub_category?: string;
   download_url: string;
   rating?: number;
   downloads_count?: number;
@@ -33,3 +30,13 @@ export interface ConfigStatus {
   isTableMissing?: boolean;
   connectionError?: string | null;
 }
+
+export interface ApiResponse<T = unknown> {
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+export type GameCategory = 'games' | 'apps';
+export type CreateGameInput = Omit<Game, 'id' | 'created_at' | 'updated_at' | 'rating' | 'downloads_count'>;
+export type UpdateGameInput = Partial<CreateGameInput>;

@@ -4,9 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "cross-env NODE_ENV=development tsx api/index.ts",
-    "build": "vite build && esbuild api/index.ts --bundle --platform=node --format=esm --packages=external --outfile=api/index.js",
-    "start": "cross-env NODE_ENV=production tsx api/index.ts",
+    "dev": "cross-env NODE_ENV=development tsx api/_index.ts",
+    "build": "vite build && esbuild api/_index.ts --bundle --platform=node --format=esm --packages=external --outfile=api/index.js",
+    "start": "cross-env NODE_ENV=production tsx api/_index.ts",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
   },

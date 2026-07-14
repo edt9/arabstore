@@ -3,7 +3,6 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import multer from "multer";
-import { createServer as createViteServer } from "vite";
 import { createClient } from "@supabase/supabase-js";
 import { v2 as cloudinary } from "cloudinary";
 import crypto from "crypto";
@@ -14,15 +13,17 @@ import { Game, AdminSession, ConfigStatus } from "../src/types";
 const app = express();
 const PORT = 3000;
 
-// Setup directories
+// Setup directories (only in non-Vercel environments - Vercel has a read-only filesystem)
 const dataDir = path.join(process.cwd(), "data");
 const uploadsDir = path.join(process.cwd(), "public", "uploads");
 
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+if (!process.env.VERCEL) {
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
 }
 
 // Config statuses
@@ -838,36 +839,35 @@ app.post("/api/games/reorder", adminAuth, async (req, res) => {
   }
 });
 
-// Serve frontend and handle development vs production
-async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
-    // Serve static uploads folder in development
-    app.use("/uploads", express.static(path.join(process.cwd(), "public", "uploads")));
+// In Vercel, we only export the app (Vercel handles routing via vercel.json)
+// In local dev/production, we start the Express server
+if (!process.env.VERCEL) {
+  const startServer = async () => {
+    if (process.env.NODE_ENV !== "production") {
+      app.use("/uploads", express.static(path.join(process.cwd(), "public", "uploads")));
+      const { createServer: createViteServer } = await import("vite");
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), "dist");
+      app.use(express.static(distPath));
+      app.use("/uploads", express.static(path.join(process.cwd(), "public", "uploads")));
+      app.get("*", (req, res) => {
+        res.sendFile(path.join(distPath, "index.html"));
+      });
+    }
 
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.use("/uploads", express.static(path.join(process.cwd(), "public", "uploads")));
-
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-  }
-
-  if (!process.env.VERCEL) {
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server running on http://localhost:${PORT}`);
       console.log(`- Supabase Integration: ${isSupabaseConfigured ? "ENABLED" : "LOCAL BACKEND ACTIVE"}`);
       console.log(`- Cloudinary Storage: ${isCloudinaryConfigured ? "ENABLED" : "LOCAL STORAGE ACTIVE"}`);
     });
-  }
-}
+  };
 
-startServer();
+  startServer();
+}
 
 export default app;
